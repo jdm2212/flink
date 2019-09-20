@@ -43,10 +43,14 @@ public class DeclineCheckpoint extends AbstractCheckpointMessage implements java
 	public DeclineCheckpoint(JobID job, ExecutionAttemptID taskExecutionId, long checkpointId, Throwable reason) {
 		super(job, taskExecutionId, checkpointId);
 
-		if (reason == null || reason instanceof CheckpointException) {
+		if (reason == null) {
 			this.reason = reason;
 		} else {
-			// some other exception. replace with a serialized throwable, to be on the safe side
+			// Replace with a serialized throwable in case the cause (or root cause) is not in the default classloader. 
+			//
+			// An exception that is in the default classloader will fail to deserialize if its root cause
+			// is not in the default classloader, e.g. a CheckpointException (on the classpath) with root cause
+			// KafkaException (not on the classpath). See: https://issues.apache.org/jira/browse/FLINK-14076
 			this.reason = new SerializedThrowable(reason);
 		}
 	}
